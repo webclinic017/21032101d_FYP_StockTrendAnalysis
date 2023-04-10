@@ -1,0 +1,9 @@
+{
+    "editor.defaultFormatter": "keraun.vue-beautify2",
+    "[django-html]": {
+        "editor.defaultFormatter": "monosans.djlint"
+    },
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.python"
+    }
+}

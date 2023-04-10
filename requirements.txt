@@ -1,0 +1,10 @@
+Flask
+backtrader
+numpy
+pandas
+yfinance
+matplotlib==3.6.1
+plotly
+kaleido
+scipy
+quantstats

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Backtesting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.6.2/dist/vuetify.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <v-app>     
+            <v-alert v-if="error_message!='None'" type="error" dense>
+                {{ error_message }}
+              </v-alert>
+            <v-container>
+                <v-row>
+                    <v-col cols="12">
+                        <h1 class="text-center">Stock Backtesting</h1>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col cols="12" md="8" offset-md="2">
+                        <v-form @submit.prevent="submitForm" action="/result" method="post"  show-validation-on="submit"  ref="form">
+                            <v-row>
+                                <v-col cols="12" md="4">
+                                    <v-text-field
+                                        v-model="symbol"
+                                        name="symbol"
+                                        label="Stock Symbol"
+                                        :rules="symbolRules"
+                                        required
+                                    ></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-menu
+                                        v-model="menu_start"
+                                        :close-on-content-click="false"
+                                        :nudge-right="40"
+                                        transition="scale-transition"
+                                        offset-y
+                                        min-width="290px"
+                                    >
+                                        <template v-slot:activator="{ on, attrs }">
+                                            <v-text-field
+                                                v-model="start_date"
+                                                label="Start Date"
+                                                :rules="startRules"
+                                                name="start_date"
+                                                readonly
+                                                v-bind="attrs"
+                                                v-on="on"
+                                                required
+                                            ></v-text-field>
+                                        </template>
+                                        <v-date-picker
+                                            v-model="start_date"
+                                            :max="new Date().toISOString().substr(0, 10)"
+                                            @input="menu_start = false"
+                                        ></v-date-picker>
+                                    </v-menu>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-menu
+                                        v-model="menu_end"
+                                        :close-on-content-click="false"
+                                        :nudge-right="40"
+                                        transition="scale-transition"
+                                        offset-y
+                                        min-width="290px"
+                                    >
+                                        <template v-slot:activator="{ on, attrs }">
+                                            <v-text-field
+                                                name="end_date"
+                                                v-model="end_date"
+                                                :rules="endRules"
+                                                label="End Date"
+                                                readonly
+                                                v-bind="attrs"
+                                                v-on="on"
+                                                required
+                                            ></v-text-field>
+                                        </template>
+                                        <v-date-picker
+                                            v-model="end_date"
+                                            :max="new Date().toISOString().substr(0, 10)"
+                                            @input="menu_end = false"
+                                        ></v-date-picker>
+                                    </v-menu>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="12" md="4">
+                                    <v-text-field
+                                        name="commission"
+                                        :rules="commissionRules"
+                                        v-model="commission"
+                                        label="Commission"
+                                        type="number"
+                                        required
+                                    ></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-select
+                                        :rules="strategyRules"
+                                        name="selected_strategy"    
+                                        v-model="selected_strategy"
+                                        :items="strategies"
+                                        label="Strategy"
+                                        required
+                                    ></v-select>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field
+                                        name="initial_cash"
+                                        :rules="initialCashRules"
+                                        v-model="initial_cash"
+                                        label="Initial Cash"
+                                        type="number"
+                                        required
+                                    ></v-text-field>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="12" md="4">
+                                    <v-select
+                                        name="moving_average_type"
+                                        v-model="moving_average_type"
+                                        :items="moving_average_types"
+                                        :rules="movingAverageRules"
+                                        label="Moving Average Type"
+                                        required
+                                    ></v-select>
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="12" class="text-center">
+                                    <v-btn type="submit" color="primary">Submit</v-btn>
+                                </v-col>
+                            </v-row>
+                        </v-form>
+                    </v-col>
+                </v-row>
+            </v-container>
+        </v-app>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.6.2"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            vuetify: new Vuetify({
+                theme: {
+                    dark: true
+                },
+            }),
+            data: () => ({
+                error_message: '{{ error_message }}',
+                valid: true,
+                symbol: '',
+                moving_average_type: '',
+                moving_average_types: ['SMA', 'EMA', 'WMA', 'HVIDYA'],
+                start_date: null,
+                end_date: null,
+                menu_start: false,
+                menu_end: false,
+                commission: '',
+                selected_strategy: '',
+                strategies: ['12_26_MACD', 'Bollinger_Band','20_50_MA_Crossover'],
+                initial_cash: '',
+                use_HVIDYA : false,
+                showStartDatePicker: false,
+                showEndDatePicker: false,
+                maxDate: new Date().toISOString().substr(0, 10),
+                symbolRules: [
+                    v => !!v || 'Stock symbol is required',
+                ],
+                startRules: [
+                    v => !!v || 'Start date is required',
+                ],
+                endRules: [
+                    v => !!v || 'End date is required',
+                ],
+                initialCashRules: [
+                    v => !!v || 'Initial cash is required',
+                ],
+                commissionRules: [
+                    v => !!v || 'Commission is required',
+                ],
+                strategyRules: [
+                    v => !!v || 'Strategy is required',
+                ],
+                movingAverageRules: [
+                    v => !!v || 'Moving average type is required',
+                ],
+            }),
+            methods: {
+                submitForm() {
+                    if (this.$refs.form.validate()) {
+                        this.$refs.form.$el.submit();
+                    }
+                },
+            },
+        });
+    </script>
+</body>
+</html>

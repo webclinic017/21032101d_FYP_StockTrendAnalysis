@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtesting Result</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.6.2/dist/vuetify.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<body>
+    <div id="app">
+        <v-app>
+            <v-container>
+                <v-row>
+                    <v-col cols="12" md="6" offset-md="3">
+                        <v-card class="pa-5" outlined>
+                            <v-card-title class="text-h5">
+                                Update and Rerun Backtest
+                            </v-card-title>
+                            <v-card-text>
+                                <v-form @submit.prevent="submitForm"  action="/result" method="post" ref="form" show-validation-on="submit"  ref="form">
+                                    <v-row>
+                                        <v-col cols="12" md="6">
+                                            <v-select
+                                                :rules="strategyRules"
+                                                name="selected_strategy"    
+                                                v-model="selected_strategy"
+                                                :items="strategies"
+                                                label="Strategy"
+                                                required
+                                            ></v-select>
+                                        </v-col>
+                                        <v-col cols="12" md="6">
+                                            <v-select
+                                                :rules="movingAverageRules"
+                                                name="moving_average_type"
+                                                v-model="moving_average_type"
+                                                :items="moving_average_types"
+                                                label="Moving Average Type"
+                                                required
+                                            ></v-select>
+                                        </v-col>
+                                        <v-col cols="12" md="4">
+                                            <v-text-field
+                                                name="symbol"
+                                                v-model="symbol"
+                                                label="Symbol"
+                                                required
+                                            ></v-text-field>
+                                        </v-col>
+                                    </v-row>
+                                    <v-row>
+                                        <v-col cols="12" class="text-center">
+                                            <v-btn type="submit" color="primary" large>Update and Rerun Backtest</v-btn>
+                                        </v-col>
+                                    </v-row>
+                                    <input type="hidden" name="symbol" v-model="symbol">
+                                    <input type="hidden" name="start_date" v-model="start_date">
+                                    <input type="hidden" name="end_date" v-model="end_date">
+                                    <input type="hidden" name="commission" v-model="commission">
+                                    <input type="hidden" name="initial_cash" v-model="initial_cash">
+                                </v-form>
+                            </v-card-text>
+                        </v-card>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col cols="12" md="6" offset-md="3">
+                        <v-card>
+                            <v-card-title class="headline">Backtest Input</v-card-title>
+                            <v-card-text>
+                                <v-data-table
+                                    :headers="inputHeaders"
+                                    :items="inputData"
+                                
+                                    class="elevation-1"
+                                ></v-data-table>
+                            </v-card-text>
+                        </v-card>
+                    </v-col>
+                </v-row>
+
+
+                <v-row>
+                    <v-col>
+                        <h2>Backtesting Result</h2>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <v-data-table
+                            :headers="headers"
+                            :items="results"
+                            class="elevation-1"
+                        ></v-data-table>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <h2>Trade Analyzer</h2>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <v-data-table
+                        :headers="tradeAnalyzerHeaders"
+                        :items="trade_analyzer_data"
+                        class="elevation-1"
+                      ></v-data-table>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <h2>Transaction</h2>
+                    </v-col>
+                </v-row>   
+                <v-row>
+                    <v-col>
+                        <v-data-table
+                        :headers="transactionHeaders"
+                        :items="transactions"
+                        :items-per-page="5"
+                    >
+                    </v-data-table>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <v-btn color="primary" @click="toggleChart">Show/Hide Chart</v-btn>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <div v-if="showChart">
+                            <iframe src="/chart" width="100%" height="600px" frameborder="0"></iframe>
+                        </div>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <div v-if="showChart">
+                            <iframe src="/quantstat" width="100%" height="600px" frameborder="0"></iframe>
+                        </div>
+                    </v-col>
+                </v-row>
+                <v-row>
+                    <v-col>
+                        <v-btn color="primary" @click="goBack">Back</v-btn>
+                    </v-col>
+                </v-row>
+            </v-container>
+        </v-app>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@2.6.2"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            vuetify: new Vuetify(),
+            data: {
+                inputHeaders: [
+                { text: 'Parameter', value: 'parameter' },
+                { text: 'Value', value: 'value' },
+                ],
+                inputData: [
+                { parameter: 'Symbol', value: '{{ symbol }}' },
+                { parameter: 'Start Date', value: '{{ start_date }}' },
+                { parameter: 'End Date', value: '{{ end_date }}' },
+                { parameter: 'Commission', value: '{{ commission }}' },
+                { parameter: 'Initial Cash', value: '{{ initial_cash }}' },
+                { parameter: 'Strategy', value: '{{ selected_strategy }}' },
+                { parameter: 'Moving Average Type', value: '{{ moving_average_type }}' },
+            ],
+                symbol: "{{ symbol }}",
+                start_date: "{{ start_date }}",
+                end_date: "{{ end_date }}",
+                commission: parseFloat("{{ commission }}"),
+                initial_cash: parseFloat("{{ initial_cash }}"),
+                moving_average_type: "{{ moving_average_type }}",
+                moving_average_types: ['SMA', 'EMA', 'WMA', 'HVIDYA'],
+                strategies: ['12_26_MACD', 'Bollinger_Band','20_50_MA_Crossover'],
+                selected_strategy: "{{ selected_strategy }}",
+                headers: [
+                    { text: 'Parameter', value: 'parameter' },
+                    { text: 'Value', value: 'value' },
+                ],
+                results: [
+                    { parameter: 'Profit', value: {{ profit }} },
+                    { parameter: 'End Portfolio Value', value: {{ end_portfolio_value }} },
+                    { parameter: 'Sharpe Ratio', value: {{ sharpe_ratio }} },
+                    { parameter: 'Max Drawdown', value: {{ drawdown }}+ '%'},
+                    { parameter: 'Returns', value: {{ returns }} + '%'},
+                    { parameter: 'SQN', value: {{ sqn }} },
+                ],
+
+                //for the transactions data
+                transactions: JSON.parse('{{ transactions | safe }}'),
+                  transactionHeaders: [
+            { text: 'Date', value: 'date' },
+            { text: 'Amount', value: 'size' },
+            { text: 'Price', value: 'price' },
+            { text: 'Symbol', value: 'symbol' },
+            { text: 'Value', value: 'value' },
+        ], 
+        //for the trade analyzer data
+        trade_analyzer_data: JSON.parse('{{ trade_analyzer_data | safe }}'),
+                  tradeAnalyzerHeaders: [
+            { text: "Label", value: "label" },
+            { text: "Value", value: "value" },
+            ],
+         tradeAnalyzerData: [],
+         showChart: false,
+                movingAverageRules: [
+                    v => !!v || 'Moving average type is required',
+                ],
+                strategyRules: [
+                    v => !!v || 'Strategy is required',
+                ],
+            },
+
+            methods: {
+                goBack() {
+                    window.location.href = '/';
+                },
+                toggleChart() {
+                    this.showChart = !this.showChart;
+                },
+                submitForm() {
+                    if (this.$refs.form.validate()) {
+                        this.$refs.form.$el.submit();
+                    }
+                },
+            },
+        })
+    </script>
+</body>
+</html>
