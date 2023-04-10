@@ -254,28 +254,28 @@ def run_backtest(strategy, symbol, start_date, end_date, commission, initial_cas
 
      
     # Download SPY data for compare
-#    spy_data = yf.download("SPY", start=start_date, end=end_date)
+    spy_data = yf.download("SPY", start=start_date, end=end_date)
 
     # Calculate daily returns
-#    spy_returns = spy_data['Adj Close'].pct_change().dropna()
+    spy_returns = spy_data['Adj Close'].pct_change().dropna()
 
     # Convert the index to a timezone-naive datetime index
-#    spy_returns.index = spy_returns.index.tz_localize(None)  
+    spy_returns.index = spy_returns.index.tz_localize(None)  
     
     #get quantstats report
-#    portfolio = results[0].analyzers.getbyname('pyfolio')
-#    returns, positions, transactions, gross_lev = portfolio.get_pf_items()
-#    returns.index = returns.index.tz_convert(None)
+    portfolio = results[0].analyzers.getbyname('pyfolio')
+    returns, positions, transactions, gross_lev = portfolio.get_pf_items()
+    returns.index = returns.index.tz_convert(None)
 
 # Generate quantstats report 
-#    qs.reports.html(returns, output='templates/', title='QuantStats Report (Strategy VS SPY)', benchmark=spy_returns)
+    qs.reports.html(returns, output='templates/', title='QuantStats Report (Strategy VS SPY)', benchmark=spy_returns)
 
     # Remove the existing file if it exists
-#    if os.path.exists('templates/stats.html'):
-#        os.remove('templates/stats.html')
+    if os.path.exists('templates/stats.html'):
+        os.remove('templates/stats.html')
 
     # Move the new file to the desired location and rename it
-#    shutil.move('quantstats-tearsheet.html', 'templates/stats.html')
+    shutil.move('quantstats-tearsheet.html', 'templates/stats.html')
 
 
     return {

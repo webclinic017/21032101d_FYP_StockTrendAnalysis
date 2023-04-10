@@ -1,0 +1,9 @@
+pandas
+numpy
+tqdm
+IPython
+yfinance
+finviz==1.4.4
+finvizfinance==0.14.4
+joblib
+pandas_ta
